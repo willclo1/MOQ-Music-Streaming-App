@@ -1,0 +1,9 @@
+[package]
+name = "web_imp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+final-project-group3_s25 = { path = "../.." }
+
+

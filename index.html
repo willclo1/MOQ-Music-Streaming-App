@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bear Radio Live Stream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #1a8a5e;
+            --bg-mid: #5bba6f;
+            --bg-end: #ffd45e;
+            --fg-light: #f0f0f0;
+            --fg-dark: #1e1e1e;
+            --accent: #f9bf00;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --transition: 0.3s ease;
+            --shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-mid) 50%, var(--bg-end) 100%);
+            color: var(--fg-light);
+            padding: 1em;
+        }
+        .container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 2em;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        #logo {
+            max-width: 150px;
+            margin: 0 auto 1em;
+        }
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5em;
+            letter-spacing: 1px;
+            color: var(--fg-light);
+        }
+        #status {
+            font-size: 1rem;
+            margin-bottom: 1em;
+            padding: 0.5em 1em;
+            background: var(--fg-dark);
+            border-radius: var(--radius);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5em;
+            justify-content: center;
+            margin-bottom: 1em;
+        }
+        select, button {
+            font-size: 0.95rem;
+            padding: 0.6em 1em;
+            border: none;
+            border-radius: var(--radius);
+            transition: background var(--transition), transform var(--transition);
+        }
+        select {
+            background: var(--fg-dark);
+            color: var(--fg-light);
+            cursor: pointer;
+        }
+        select:focus {
+            outline: 2px solid var(--accent);
+        }
+        button {
+            background: var(--accent);
+            color: var(--fg-dark);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            font-weight: 500;
+        }
+        button:hover:not(:disabled) {
+            background: #e0ac00;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: var(--fg-dark);
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <img id="logo" src="bear_radio.png" alt="Bear Radio Logo">
+    <h1>Bear Radio Live</h1>
+    <div id="status">🔌 Not connected</div>
+    <div id="controls">
+        <select id="stationSelector">
+            <option value="station1">Station 1</option>
+            <option value="station2">Station 2</option>
+            <option value="station3">Station 3</option>
+        </select>
+        <button id="tuneBtn">📻 Tune</button>
+        <button id="startBtn" disabled>▶️ Start</button>
+        <button id="stopBtn" disabled>⏸️ Stop</button>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const statusEl = document.getElementById('status');
+        const selector = document.getElementById('stationSelector');
+        const tuneBtn = document.getElementById('tuneBtn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        const stationUrls = {
+            station1: 'ws://localhost:3030/ws/station1',
+            station2: 'ws://localhost:3031/ws/station2',
+            station3: 'ws://localhost:3032/ws/station3',
+        };
+
+        let currentUrl;
+        let socket, audioCtx, queue, nextTime, playing;
+        let activeSources = [];
+        let userPaused = false;
+
+        function resetAudio() {
+            if (socket) {
+                socket.onopen = null;
+                socket.onmessage = null;
+                socket.onerror = null;
+                socket.onclose = null;
+                socket.close();
+                socket = null;
+            }
+            audioCtx?.close();
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            queue = [];
+            nextTime = 0;
+            playing = false;
+            activeSources = [];
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        function updateStatus(text) {
+            statusEl.textContent = text;
+        }
+
+        function connect(url) {
+            currentUrl = url;
+            resetAudio();
+            updateStatus(`🔄 Connecting to ${url}...`);
+            socket = new WebSocket(url);
+            socket.binaryType = 'arraybuffer';
+
+            socket.onopen = () => {
+                updateStatus(`🟢 Connected`);
+                if (!userPaused) {
+                    audioCtx.resume().then(startPlayback).catch(() => {});
+                }
+            };
+
+            socket.onmessage = handleMessage;
+            socket.onerror = () => updateStatus('❌ WebSocket Error');
+            socket.onclose = () => {
+                updateStatus('🔌 Disconnected – reconnecting…');
+                setTimeout(() => connect(currentUrl), 1000);
+            };
+        }
+
+        function handleMessage(event) {
+            if (typeof event.data === 'string') {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'info') updateStatus(`ℹ️ ${msg.message}`);
+                } catch {}
+                return;
+            }
+            const pcm = new Int16Array(event.data);
+            const frameLen = pcm.length / 2;
+            const buf = audioCtx.createBuffer(2, frameLen, 48000);
+            for (let ch = 0; ch < 2; ch++) {
+                const data = new Float32Array(frameLen);
+                for (let i = 0; i < frameLen; i++) {
+                    data[i] = pcm[i * 2 + ch] / 32768;
+                }
+                buf.copyToChannel(data, ch);
+            }
+            queue.push(buf);
+
+            if (!playing && !userPaused) {
+                audioCtx.resume().then(startPlayback);
+            }
+        }
+
+        function startPlayback() {
+            if (playing || userPaused) return;
+            playing = true;
+            nextTime = audioCtx.currentTime + 0.1;
+            updateStatus('▶️ Playing...');
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            function scheduler() {
+                if (!playing) return;
+
+                const ahead = audioCtx.currentTime + 1;
+
+                while (queue.length && nextTime < ahead) {
+                    const src = audioCtx.createBufferSource();
+                    src.buffer = queue.shift();
+                    src.connect(audioCtx.destination);
+                    src.start(nextTime);
+                    activeSources.push(src);
+                    nextTime += src.buffer.duration;
+
+                    src.onended = () => {
+                        if (!playing) return;
+                        requestAnimationFrame(scheduler);
+                    };
+                }
+
+                if (queue.length) {
+                    requestAnimationFrame(scheduler);
+                }
+            }
+
+            scheduler();
+        }
+
+        function stopPlayback() {
+            playing = false;
+            userPaused = true;
+
+            activeSources.forEach(src => {
+                try { src.stop(); } catch {}
+            });
+            activeSources = [];
+
+            audioCtx.suspend().then(() => updateStatus('⏸️ Stopped'));
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        tuneBtn.addEventListener('click', () => {
+            userPaused = false;
+            connect(stationUrls[selector.value]);
+        });
+
+        startBtn.addEventListener('click', () => {
+            userPaused = false;
+            audioCtx.resume().then(startPlayback);
+        });
+
+        stopBtn.addEventListener('click', stopPlayback);
+
+        // Auto-connect on first load
+        connect(stationUrls[selector.value]);
+    })();
+</script>
+</body>
+</html>

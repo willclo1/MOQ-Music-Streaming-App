@@ -1,0 +1,29 @@
+# Local
+.DS_Store
+*.local
+*.log*
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Build stuff
+node_modules
+target
+dist
+pkg
+
+# Don't leak dev stuff
+*.mp4
+*.fmp4
+*.crt
+*.key
+*.hex
+
+# We're using npm
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
+result
