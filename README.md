@@ -4,14 +4,10 @@
 
 # Baylor Bear Radio
 
-A Rust-based music streaming server using Media over QUIC (MoQ), designed to broadcast audio like a radio station.
+This application streams audio over QUIC using the MoQ protocol. It mimics a radio station where clients can tune in and listen in real time. There
+is a version that runs in the command line as well as an unsynchronized version that runs over the web using web sockets. It is built in rust and uses
+a publisher and subscriber model with a relay server to deliver live music to all users.
 
----
-
-## What is This?
-
-This project streams audio over QUIC using the MoQ protocol. It mimics a radio station where clients can tune in and listen in real time. There
-is a version that runs in the command line as well as an unsynchronized version that runs over the web using web sockets. The ins
 
 ---
 
