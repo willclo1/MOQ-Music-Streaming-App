@@ -4,12 +4,9 @@
 
 # Baylor Bear Radio
 
-This application streams audio over QUIC using the MoQ protocol. It mimics a radio station where clients can tune in and listen in real time. There
-is a version that runs in the command line as well as an unsynchronized version that runs over the web using web sockets. It is built in rust and uses
-a publisher and subscriber model with a relay server to deliver live music to all users.
+This application streams audio over QUIC using the MoQ protocol, allowing users to tune in and listen in real time, much like a traditional radio station. It features both a command-line version and a web-based variant using WebSockets. Built in Rust, it employs a publisher-subscriber model with a relay server to efficiently distribute live music to all users. The design prioritizes low-latency streaming, scalability, and reliability, ensuring a smooth listening experience across different platforms
 
-
----
+<br>
 
 ## How to Run
 
@@ -18,7 +15,7 @@ a publisher and subscriber model with a relay server to deliver live music to al
 - Cargo and Rust are installed
 
 
-### CLI:
+#### CLI:
 
 1. navigate into the moq-rs folder 
 ```bash
@@ -44,7 +41,7 @@ cargo run --bin final-project-group3_s25 -- --station-index <channel_number> pub
 cargo run --bin cli
 ```
 
-### Web Server:
+#### Web Server:
 
 1. navigate into the moq-rs folder 
 ```bash
