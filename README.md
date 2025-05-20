@@ -4,7 +4,7 @@
 
 # Baylor Bear Radio
 
-This application streams audio over QUIC using the MoQ protocol, offering a live listening experience similar to tuning into a radio station. Users can connect in real time via either a command-line interface or a web-based version that operates over WebSockets. Built in Rust, the system employs a publisher-subscriber model, where a relay server efficiently distributes live music to all listeners. Designed for low latency and scalability, it ensures smooth, reliable streaming across different platforms, making it an adaptable solution for live audio broadcasting.
+This application streams audio over QUIC using the MoQ protocol, offering a live listening experience similar to tuning into a radio station. Users can connect in real time via either a command-line interface or a web-based version that operates over WebSockets. Built in Rust, the system employs a publisher-subscriber model, where a relay server efficiently distributes live music to all listeners. Designed for low latency and scalability, it ensures smooth, reliable streaming across both Mac and Linux, making it an adaptable solution for live audio broadcasting.
 
 <br>
 
